@@ -5,25 +5,22 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Map;
-import java.util.UUID;
+import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 
 @RestController
 public class PhotozController {
 
-    private Map<String, Photo> db = new HashMap<>() {
-        {
-            put("1", new Photo("1", "hello.jpg"));
-            put("2", new Photo("2", "world.jpg"));
-        }
-    };
+    private final PhotosService photosService;
 
+    public PhotozController(PhotosService photosService) {
+        this.photosService = photosService;
+    }
     // private List<Photo> db1 = List.of(new Photo("1", "hello.jpg"));
 
     @GetMapping("/")
@@ -33,12 +30,12 @@ public class PhotozController {
 
     @GetMapping("/photos")
     public Collection<Photo> get() {
-        return db.values();
+        return photosService.get();
     }
 
     @GetMapping("/photos/{id}")
     public Photo getById(@PathVariable String id) {
-        Photo photo = db.get(id);
+        Photo photo = photosService.get(id);
         if (photo == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
@@ -47,16 +44,15 @@ public class PhotozController {
 
     @DeleteMapping("/photos/{id}")
     public void delete(@PathVariable String id) {
-        Photo photo = db.remove(id);
+        Photo photo = photosService.remove(id);
         if (photo == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
     }
 
     @PostMapping("/photos")
-    public Photo create(@RequestBody Photo photo) {
-        photo.setId(UUID.randomUUID().toString());
-        db.put(photo.getId(), photo);
+    public Photo create(@RequestPart("data") MultipartFile file) throws IOException {
+        Photo photo = photosService.save(file.getOriginalFilename(), file.getContentType(), file.getBytes());
         return photo;
     }
 }
